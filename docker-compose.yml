@@ -1,0 +1,15 @@
+services:
+  semester:
+    container_name: semester
+    image: foo/bar:latest
+    environment:
+      - MODE=test
+      - BASE_URL=http://a.com?user_id=
+      - TOTAL_USER=10000
+    volumes:
+      - semester24h2:/app/resource
+    restart: always
+
+volumes:
+  semester24h2:
+    name: semester24h2
