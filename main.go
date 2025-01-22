@@ -21,7 +21,9 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Header.Get("X-Consumer-Username")
 		if userID == "" {
-			http.Error(w, "x-consume-user header is required", http.StatusBadRequest)
+			// 未授权，重定向到登录页面
+			authURL := os.Getenv("AUTH_URL")               // 从环境变量获取 AUTH_URL
+			http.Redirect(w, r, authURL, http.StatusFound) // 302 重定向
 			return
 		}
 
