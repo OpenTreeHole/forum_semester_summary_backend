@@ -28,7 +28,7 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Header.Get("X-Consumer-Username")
 		if userID == "" {
-			log.Panicln("User ID not found in header")
+			log.Println("User ID not found in header")
 			for key, values := range r.Header {
 				log.Printf("Header: %s = %v", key, values)
 			}
