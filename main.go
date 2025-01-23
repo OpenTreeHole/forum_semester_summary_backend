@@ -28,6 +28,10 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Header.Get("X-Consumer-Username")
 		if userID == "" {
+			log.Panicln("User ID not found in header")
+			for key, values := range r.Header {
+				log.Printf("Header: %s = %v", key, values)
+			}
 			// 未授权，重定向到登录页面
 			authURL := os.Getenv("AUTH_URL")               // 从环境变量获取 AUTH_URL
 			http.Redirect(w, r, authURL, http.StatusFound) // 302 重定向
