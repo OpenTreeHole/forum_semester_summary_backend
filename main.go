@@ -6,9 +6,18 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 func main() {
+	envTotalUser := os.Getenv("TOTAL_USER")
+	if envTotalUser == "" {
+		log.Fatal("TOTAL_USER is required")
+	}
+	totalUser, err := strconv.Atoi(envTotalUser)
+	if err != nil {
+		log.Fatalf("Failed to parse TOTAL_USER: %v", err)
+	}
 	// mode := os.Getenv("MODE")
 	// // 如果是测试模式，触发下载文件
 	// if mode == "test" {
@@ -22,6 +31,17 @@ func main() {
 			// 未授权，重定向到登录页面
 			authURL := os.Getenv("AUTH_URL")               // 从环境变量获取 AUTH_URL
 			http.Redirect(w, r, authURL, http.StatusFound) // 302 重定向
+			return
+		}
+		userIDint, err := strconv.Atoi(userID)
+		if err != nil {
+			http.Error(w, "Invalid user ID", http.StatusBadRequest)
+			log.Printf("Invalid user ID: %s\n", userID)
+			return
+		}
+		if userIDint < 1 || userIDint > totalUser {
+			http.Error(w, "User ID out of range", http.StatusBadRequest)
+			log.Printf("User ID out of range: %s\n", userID)
 			return
 		}
 

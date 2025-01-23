@@ -4,7 +4,7 @@ services:
     image: foo/bar:latest
     environment:
       # - MODE=test
-      - BASE_URL=http://a.com?user_id=
+      # - BASE_URL=http://a.com?user_id=
       - TOTAL_USER=10000
       - AUTH_URL=http://b.com?url=
     volumes:
