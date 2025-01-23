@@ -26,26 +26,9 @@ func main() {
 	// }
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		userID := r.Header.Get("X-Consumer-Username")
-		if userID == "" {
-			log.Println("User ID not found in header")
-			for key, values := range r.Header {
-				log.Printf("Header: %s = %v", key, values)
-			}
-			// 未授权，重定向到登录页面
-			authURL := os.Getenv("AUTH_URL")               // 从环境变量获取 AUTH_URL
-			http.Redirect(w, r, authURL, http.StatusFound) // 302 重定向
-			return
-		}
-		userIDint, err := strconv.Atoi(userID)
+		userID, err := checkUserID(w, r, totalUser)
 		if err != nil {
-			http.Error(w, "Invalid user ID", http.StatusBadRequest)
-			log.Printf("Invalid user ID: %s\n", userID)
-			return
-		}
-		if userIDint < 1 || userIDint > totalUser {
-			http.Error(w, "User ID out of range", http.StatusBadRequest)
-			log.Printf("User ID out of range: %s\n", userID)
+			log.Println(err)
 			return
 		}
 
@@ -100,4 +83,30 @@ func serveDefaultHTML(w http.ResponseWriter, r *http.Request, userDir, userID st
 	}
 	http.ServeFile(w, r, htmlFilePath)
 	log.Printf("Served default HTML file: %s for user: %s\n", htmlFilePath, userID)
+}
+
+func checkUserID(w http.ResponseWriter, r *http.Request, totalUser int) (string, error) {
+	userID := r.Header.Get("X-Consumer-Username")
+	if userID == "" {
+		// log.Println("User ID not found in header")
+		// for key, values := range r.Header {
+		// 	log.Printf("Header: %s = %v", key, values)
+		// }
+		// 未授权，重定向到登录页面
+		authURL := os.Getenv("AUTH_URL")               // 从环境变量获取 AUTH_URL
+		http.Redirect(w, r, authURL, http.StatusFound) // 302 重定向
+		return "", fmt.Errorf("User ID not found in header")
+	}
+	userIDint, err := strconv.Atoi(userID)
+	if err != nil {
+		http.Error(w, "Invalid user ID", http.StatusBadRequest)
+		log.Printf("Invalid user ID: %s\n", userID)
+		return "", err
+	}
+	if userIDint < 1 || userIDint > totalUser {
+		http.Error(w, "User ID out of range", http.StatusBadRequest)
+		log.Printf("User ID out of range: %s\n", userID)
+		return "", fmt.Errorf("User ID out of range")
+	}
+	return userID, nil
 }
