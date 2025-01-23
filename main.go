@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
@@ -10,13 +9,12 @@ import (
 )
 
 func main() {
-	mode := os.Getenv("MODE")
-
-	// 如果是测试模式，触发下载文件
-	if mode == "test" {
-		fmt.Println("Running in test mode: downloading files...")
-		downloadFiles()
-	}
+	// mode := os.Getenv("MODE")
+	// // 如果是测试模式，触发下载文件
+	// if mode == "test" {
+	// 	fmt.Println("Running in test mode: downloading files...")
+	// 	downloadFiles()
+	// }
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		userID := r.Header.Get("X-Consumer-Username")
@@ -27,21 +25,55 @@ func main() {
 			return
 		}
 
-		filePath := filepath.Join("resource", fmt.Sprintf("%s.html", userID))
-		file, err := os.Open(filePath)
-		if err != nil {
-			http.Error(w, "File not found", http.StatusNotFound)
-			log.Printf("File not found for user: %s\n", userID)
+		// 用户资源目录
+		userDir := filepath.Join("resource", userID)
+		if _, err := os.Stat(userDir); os.IsNotExist(err) {
+			http.Error(w, "User resources not found", http.StatusNotFound)
+			log.Printf("Resource directory not found for user: %s\n", userID)
 			return
 		}
-		defer file.Close()
 
-		w.Header().Set("Content-Type", "text/html")
-		io.Copy(w, file)
-		log.Printf("Served file: %s for user: %s\n", filePath, userID)
+		// 请求路径（去掉前导斜杠）
+		requestedPath := r.URL.Path[1:]
+		fullPath := filepath.Join(userDir, requestedPath)
+
+		// 如果是目录请求，返回用户的默认 HTML 文件
+		if fileInfo, err := os.Stat(fullPath); err == nil && fileInfo.IsDir() {
+			serveDefaultHTML(w, r, userDir, userID)
+			return
+		}
+
+		// 如果文件存在，返回该文件
+		if _, err := os.Stat(fullPath); err == nil {
+			http.ServeFile(w, r, fullPath)
+			log.Printf("Served file: %s for user: %s\n", fullPath, userID)
+			return
+		}
+
+		// 如果文件不存在或请求路径为空，返回默认 HTML 文件
+		if requestedPath == "" || requestedPath == "/" {
+			serveDefaultHTML(w, r, userDir, userID)
+			return
+		}
+
+		// 如果请求的路径无法找到，返回 404
+		http.Error(w, "File not found", http.StatusNotFound)
+		log.Printf("File not found: %s for user: %s\n", requestedPath, userID)
 	})
 
 	port := "8080"
 	log.Printf("Server is running on port %s...", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
+}
+
+// serveDefaultHTML 返回默认的 HTML 文件
+func serveDefaultHTML(w http.ResponseWriter, r *http.Request, userDir, userID string) {
+	htmlFilePath := filepath.Join(userDir, fmt.Sprintf("%s.html", userID))
+	if _, err := os.Stat(htmlFilePath); os.IsNotExist(err) {
+		http.Error(w, "HTML file not found", http.StatusNotFound)
+		log.Printf("Default HTML file not found for user: %s\n", userID)
+		return
+	}
+	http.ServeFile(w, r, htmlFilePath)
+	log.Printf("Served default HTML file: %s for user: %s\n", htmlFilePath, userID)
 }
